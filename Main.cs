@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -25,6 +26,9 @@ namespace IRCQwitter
         NetworkStream ns = null;
         StreamReader sr = null;
         StreamWriter sw = null;
+        int carrotCount = 0;
+        Stack<string> prevline = new Stack<string>();
+        Dictionary<string, Queue<string>> history = new Dictionary<string, Queue<string>>();
 
         string master;
 
@@ -79,6 +83,121 @@ namespace IRCQwitter
             service.SendTweet(new TweetSharp.SendTweetOptions { Status = message});
             
         }
+        public void report(string message, string caller)
+        {
+            Console.WriteLine("sending to: " + caller + " " + message);
+            sendData("PRIVMSG", caller + " :" + message + "\n");
+        }
+
+        public bool shouldPost(string line)
+        {
+            int lineccount = line.Count(x => x == '^');
+            return lineccount < line.Length - lineccount;
+        }
+        
+        public void handleHistory(string caller, string[] ex)
+        {
+            string[] args;
+
+            // create an entry if there is no key for the nick
+            if (!history.ContainsKey(caller))
+            {
+                history.Add(caller, new Queue<string>());
+            }
+            else if (history[caller].Count > 20)
+            {
+                history[caller].Dequeue();
+            }
+
+            // whatever the person said
+            string combined = ex.Length > 4 ? ex[3].Substring(1) + " " + ex[4] : ex[3];
+
+            // if the command is Quoth
+            if (ex[3].Equals(":!quoth") && carrotCount <= 3)
+            {
+                try
+                {
+                    args = ex[4].Split();
+                    if (history.ContainsKey(args[0]))
+                    {
+                        if (history[args[0]].Count >= int.Parse(args[1]))
+                        {
+                            int i = 0;
+                            int prevCount = int.Parse(args[1]);
+                            if (prevCount > 0)
+                            {
+                                foreach (string line in history[args[0]])
+                                {
+                                    if (history[args[0]].Count - i == prevCount)
+                                    {
+                                        report("Posting: " + line + " to @QuothTheDong", caller);
+                                        this.SendTwitterMessage(line);
+                                        break;
+                                    }
+                                    i++;
+                                }
+                            }
+                            else
+                            {
+                                report("History number must be positive", caller);
+                            }
+
+                        }
+                        else
+                        {
+                            report(args[1] + " line(s) back does not exist for user " + args[0], caller);
+                        }
+                    }
+                    else
+                    {
+                        report("No such nick: " + args[0], caller);
+                    }
+                }
+                catch
+                {
+                    report(" Could not parse correctly: Usage: !quoth nick linenum",caller);
+                }
+            }
+            else
+            {
+                // not a quoth command
+                if (!combined.Contains("^") && prevline.Count > 0)
+                {
+                    prevline.Clear();
+                    carrotCount = 0;
+                }
+                if (!(prevline.Count == 0 && !shouldPost(combined)))
+                {
+                    if (ex.Length > 4)
+                        prevline.Push("<" + caller + ">: " + ex[3].Substring(1) + " " + ex[4]);
+                    else if (ex.Length > 3)
+                        prevline.Push("<" + caller + ">: " + ex[3].Substring(1));
+                }
+
+
+                if (prevline.Count > 1)
+                    foreach (string line in prevline)
+                        foreach (char c in line)
+                            carrotCount += c == '^' ? 1 : 0;
+
+                if (carrotCount > 3 && prevline.Count > 2)
+                {
+                    string[] temp = prevline.ToArray();
+                    if (shouldPost(temp[temp.Length-1]))
+                    {
+                        report("Posting: " + temp[temp.Length - 1] + " to @QuothTheDong", ex[2]);
+                        this.SendTwitterMessage(temp[temp.Length - 1]);
+                        prevline.Clear();
+                        carrotCount = 0;
+                    }
+                }
+
+                if (ex.Length > 4)
+                    history[caller].Enqueue("<" + caller + ">: " + ex[3].Substring(1) + " " + ex[4]);
+                else if (ex.Length > 3)
+                    history[caller].Enqueue("<" + caller + ">: " + ex[3].Substring(1));
+            }
+        }
 
         public void keepAliveAndRun()
         {
@@ -88,8 +207,6 @@ namespace IRCQwitter
             string data;
             bool quit = false;
             string caller;
-
-            Dictionary<string,Queue<string>> history = new Dictionary<string, Queue<string>>();
             while (!quit)
             {
                 data = sr.ReadLine();
@@ -98,20 +215,19 @@ namespace IRCQwitter
 
                 if (ex[0] == "PING")
                 {
+                    // Handle Ping Calls
                     sendData("PONG", ex[1]);
                 }
                 else
                 {
+                    // get the called
                     caller = ex[0].Split(new char[2] { ':', '!' })[1];
                     // me only commands
-                    
-                    if (caller.Equals("suroi"))
+                    if (ex.Length > 4)
                     {
-                        if (ex.Length > 4)
-                        {
-                            command = ex[3];
 
-                            
+                        command = ex[3];
+                        if (caller.Equals("suroi")){
                             switch (command)
                             {
                                 case ":!join":
@@ -123,9 +239,11 @@ namespace IRCQwitter
                                     break;
                             }
                         }
-                        else if (ex.Length > 3)
-                        {
-                            command = ex[3];
+                    }
+                    else if (ex.Length > 3)
+                    {
+                        command = ex[3];
+                        if(caller.Equals("suroi")){
                             switch (command)
                             {
                                 case ":!part":
@@ -134,71 +252,8 @@ namespace IRCQwitter
                             }
                         }
                     }
-                    if (!history.ContainsKey(caller))
-                    {
-                        history.Add(caller, new Queue<string>());
-                    }
-                    else if (history[caller].Count > 20)
-                    {
-                        history[caller].Dequeue();
-                    }
-                    if (ex.Length > 4 && ex[3].Equals(":!quoth"))
-                    {
-                        try
-                        {
-                            args = ex[4].Split();
-                            if (history.ContainsKey(args[0]))
-                            {
-                                if (history[args[0]].Count >= int.Parse(args[1]))
-                                {
-                                    int i = 0;
-                                    int prevCount = int.Parse(args[1]);
-                                    if (prevCount > 0)
-                                    {
-                                        foreach (string line in history[args[0]])
-                                        {
-                                            if (history[args[0]].Count - i == prevCount)
-                                            {
-                                                Console.WriteLine("Posting: " + line + " to @Quoth The Dong");
-                                                sendData("PRIVMSG", caller + " :Posting:\"" + line + "\" to @Quoth The Dong\n");
-                                                this.SendTwitterMessage(line);
-                                                break;
-                                            }
-                                            i++;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine("History number must be positive");
-                                        sendData("PRIVMSG", caller + " :History number must be positive\n");
-                                    }
-
-                                }
-                                else
-                                {
-                                    Console.WriteLine("History " + args[1] + " lines back does not exist");
-                                    sendData("PRIVMSG", caller + " :History " + args[1] + " line(s) back does not exist for user "+args[0]);
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine("No such nick: " + args[0]);
-                                sendData("PRIVMSG", caller + " :No such nick: " + args[0]);
-                            }
-                        }
-                        catch
-                        {
-                            Console.WriteLine(" Could not parse correctly: Usage: !quoth nick linenum");
-                            sendData("PRIVMSG", caller + " :Could not parse correctly: Usage: !quoth nick linenum");
-                        }
-                    }
-                    else
-                    {
-                        if (ex.Length> 4)
-                            history[caller].Enqueue("<"+caller + ">: " + ex[3].Substring(1) + " " + ex[4]);
-                        else if (ex.Length > 3)
-                            history[caller].Enqueue("<" + caller + ">: " + ex[3].Substring(1));
-                    }
+                    if (ex.Length > 3)
+                        handleHistory(caller, ex);
                 }
 
             }
