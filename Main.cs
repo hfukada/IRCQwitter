@@ -103,67 +103,15 @@ namespace IRCQwitter
                 else
                 {
                     caller = ex[0].Split(new char[2] { ':', '!' })[1];
-                    if (!history.ContainsKey(caller))
-                    {
-                        history.Add(caller, new Queue<string>());
-                    }
-                    else if (history[caller].Count > 20)
-                    {
-                        history[caller].Dequeue();
-                    }
-
-                    history[caller].Enqueue(caller + " " + ex[4]);
-                    
-
-
-
-                    if (ex.Length > 4 && ex[3].Equals(":!quoth"))
-                    {
-                        try
-                        {
-                            args = ex[4].Split();
-                            if (history.ContainsKey(args[0]))
-                            {
-                                if (history[args[0]].Count >= int.Parse(args[1]))
-                                {
-                                    int i = history[args[0]].Count-1;
-                                    int prevCount = int.Parse(args[1]);
-                                    if (prevCount > 0){
-                                        foreach ( string line in history[args[0]]){
-                                            i--;
-                                            if ( i == prevCount){
-                                                Console.WriteLine("Posting: " + line);
-                                                this.SendTwitterMessage(line);
-                                                break;
-                                            }
-                                        }
-                                    } else {
-                                        Console.WriteLine("History number must be positive");
-                                    }
-
-                                }
-                                else
-                                {
-                                    Console.WriteLine("History " + args[1] + " lines back does not exist");
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine("No such nick: " + args[0]);
-                            }
-                        }
-                        catch
-                        {
-                            Console.WriteLine(" Could not parse correctly: Usage: !quoth nick linenum");
-                        }
-                    }
-
                     // me only commands
+                    
                     if (caller.Equals("suroi"))
                     {
                         if (ex.Length > 4)
                         {
                             command = ex[3];
+
+                            
                             switch (command)
                             {
                                 case ":!join":
@@ -185,6 +133,71 @@ namespace IRCQwitter
                                     break;
                             }
                         }
+                    }
+                    if (!history.ContainsKey(caller))
+                    {
+                        history.Add(caller, new Queue<string>());
+                    }
+                    else if (history[caller].Count > 20)
+                    {
+                        history[caller].Dequeue();
+                    }
+                    if (ex.Length > 4 && ex[3].Equals(":!quoth"))
+                    {
+                        try
+                        {
+                            args = ex[4].Split();
+                            if (history.ContainsKey(args[0]))
+                            {
+                                if (history[args[0]].Count >= int.Parse(args[1]))
+                                {
+                                    int i = 0;
+                                    int prevCount = int.Parse(args[1]);
+                                    if (prevCount > 0)
+                                    {
+                                        foreach (string line in history[args[0]])
+                                        {
+                                            if (history[args[0]].Count - i == prevCount)
+                                            {
+                                                Console.WriteLine("Posting: " + line + " to @Quoth The Dong");
+                                                sendData("PRIVMSG", caller + " :Posting:\"" + line + "\" to @Quoth The Dong\n");
+                                                this.SendTwitterMessage(line);
+                                                break;
+                                            }
+                                            i++;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("History number must be positive");
+                                        sendData("PRIVMSG", caller + " :History number must be positive\n");
+                                    }
+
+                                }
+                                else
+                                {
+                                    Console.WriteLine("History " + args[1] + " lines back does not exist");
+                                    sendData("PRIVMSG", caller + " :History " + args[1] + " line(s) back does not exist for user "+args[0]);
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("No such nick: " + args[0]);
+                                sendData("PRIVMSG", caller + " :No such nick: " + args[0]);
+                            }
+                        }
+                        catch
+                        {
+                            Console.WriteLine(" Could not parse correctly: Usage: !quoth nick linenum");
+                            sendData("PRIVMSG", caller + " :Could not parse correctly: Usage: !quoth nick linenum");
+                        }
+                    }
+                    else
+                    {
+                        if (ex.Length> 4)
+                            history[caller].Enqueue("<"+caller + ">: " + ex[3].Substring(1) + " " + ex[4]);
+                        else if (ex.Length > 3)
+                            history[caller].Enqueue("<" + caller + ">: " + ex[3].Substring(1));
                     }
                 }
 
