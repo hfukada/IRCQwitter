@@ -1,9 +1,9 @@
 using System;
-using System.Linq;
 using System.Text;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.IO;
+using System.Net.WebClient;
 
 class IRCQwitter{
     internal struct IRCConfig{
@@ -17,9 +17,11 @@ class IRCQwitter{
     NetworkStream ns = null;
     StreamReader sr = null;
     StreamWriter sw = null;
+	string master;
 
-    public IRCQwitter (IRCConfig conf)
+    public IRCQwitter (IRCConfig conf, string master)
 	{
+		this.master = master;
 		this.config = conf;
 		try {
 			IRCConnection = new TcpClient (config.server, config.port);
@@ -52,48 +54,58 @@ class IRCQwitter{
         String dataToSend = param == null ? cmd : cmd + " " + param;
         sw.WriteLine(dataToSend);
         sw.Flush();
-        Console.WriteLine(dataToSend);
     }
 
+	public void update (string arg)
+	{
+		//ServicePointManager.Expect100Continue = False 
+		//wc = WebClient(Credentials = NetworkCredential(username, password))
+		//wc.Headers.Add('X-Twitter-Client', 'Pweeter')
+		//form = NameValueCollection()
+		//form.Add('status', status)
+		//wc.UploadValues('http://twitter.com/statuses/update.xml', form)
+		Webclient client = new WebClient ();
+	}
     public void keepAliveAndRun ()
 	{
 		string[] ex;
 		char[] splitchar = new char[1]{' '};
 		string command;
 		string data;
-        bool quit = false;
+		bool quit = false;
 
-        while (!quit){
-            data = sr.ReadLine();
-            Console.WriteLine(data);
-            ex = data.Split(splitchar);
+		while (!quit) {
+			data = sr.ReadLine ();
+			Console.WriteLine (data);
+			ex = data.Split (splitchar, 5);
 
-            if ( ex[0] == "PING" ){
-                sendData("PONG", ex[1]);
-            }
-            command = ex[3];
-            if ( ex.Length > 4 ){
-
-                switch(command)
-                {
-                    case ":!join":
-                        sendData("JOIN", ex[4]);
-                        break;
-                    case ":!say":
-                        sendData("PRIVMSG",ex[2] + " " + ex[4]);
-                        break;
-                    case ":!quit":
-                        sendData("QUIT", ex[4]);
-                        quit = true;
-                        break;
-                }
-            } else if ( ex.Length > 3 ){
-                switch(command){
-                    case ":!part":
-                        sendData("PART", ex[2]);
-                        break;
-                }
-            }
+			// ex[2]: nick
+			// ex[4]: command
+			if (ex [0] == "PING") {
+				sendData ("PONG", ex [1]);
+			}
+			
+			if (ex[2].Equals("suroi")){
+				if (ex.Length > 4) {
+					command = ex [3];
+					switch (command) {
+						case ":!join":
+							sendData ("JOIN", ex [4]);
+							break;
+						case ":!quit":
+							sendData ("QUIT", ex [4]);
+							quit = true;
+							break;
+					}
+				} else if (ex.Length > 3) {
+					command = ex [3];
+					switch (command) {
+						case ":!part":
+							sendData ("PART", ex [2]);
+							break;
+	                }
+	            }
+			}
 
         }
     }
@@ -104,7 +116,8 @@ class IRCQwitter{
 		conf.nick = "Qwitt";
 		conf.port = 6667;
 		conf.server = "irc.amazdong.com";
-		IRCQwitter bot = new IRCQwitter (conf);
+		string master = "suroi";
+		IRCQwitter bot = new IRCQwitter (conf, master);
 		bot.keepAliveAndRun ();
 		bot.kill ();
         Console.WriteLine("Bot quit/crashed");
