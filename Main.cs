@@ -3,7 +3,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.IO;
-using System.Net.WebClient;
+using System.Net;
 
 class IRCQwitter{
     internal struct IRCConfig{
@@ -64,7 +64,7 @@ class IRCQwitter{
 		//form = NameValueCollection()
 		//form.Add('status', status)
 		//wc.UploadValues('http://twitter.com/statuses/update.xml', form)
-		Webclient client = new WebClient ();
+		WebClient client = new WebClient ();
 	}
     public void keepAliveAndRun ()
 	{
