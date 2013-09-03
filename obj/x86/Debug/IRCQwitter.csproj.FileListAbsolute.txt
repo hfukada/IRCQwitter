@@ -2,3 +2,10 @@ C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\bin\Debug\IRCQwitter.exe
 C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\bin\Debug\IRCQwitter.pdb
 C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\obj\x86\Debug\IRCQwitter.exe
 C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\obj\x86\Debug\IRCQwitter.pdb
+C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\obj\x86\Debug\IRCQwitter.csprojResolveAssemblyReference.cache
+C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\bin\Debug\Hammock.ClientProfile.dll
+C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\bin\Debug\TweetSharp.dll
+C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\bin\Debug\Hammock.ClientProfile.pdb
+C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\bin\Debug\Newtonsoft.Json.xml
+C:\Users\Hiroshi\Documents\GitHub\IRCQwitter\bin\Debug\TweetSharp.pdb
