@@ -7,6 +7,7 @@ using System.Net;
 using System.Web;
 using TweetSharp.Model;
 using TweetSharp.Serialization;
+using System.Collections;
 
 namespace IRCQwitter
 {
@@ -81,13 +82,14 @@ namespace IRCQwitter
 
         public void keepAliveAndRun()
         {
-            string[] ex;
+            string[] ex, args;
             char[] splitchar = new char[1] { ' ' };
             string command;
             string data;
             bool quit = false;
             string caller;
 
+            Dictionary<string,Queue<string>> history = new Dictionary<string, Queue<string>>();
             while (!quit)
             {
                 data = sr.ReadLine();
@@ -101,10 +103,59 @@ namespace IRCQwitter
                 else
                 {
                     caller = ex[0].Split(new char[2] { ':', '!' })[1];
+                    if (!history.ContainsKey(caller))
+                    {
+                        history.Add(caller, new Queue<string>());
+                    }
+                    else if (history[caller].Count > 20)
+                    {
+                        history[caller].Dequeue();
+                    }
+
+                    history[caller].Enqueue(caller + " " + ex[4]);
+                    
+
+
+
                     if (ex.Length > 4 && ex[3].Equals(":!quoth"))
                     {
-                        Console.WriteLine(ex[3] + " " + ex[4]);
-                        this.SendTwitterMessage(ex[4]);
+                        try
+                        {
+                            args = ex[4].Split();
+                            if (history.ContainsKey(args[0]))
+                            {
+                                if (history[args[0]].Count >= int.Parse(args[1]))
+                                {
+                                    int i = history[args[0]].Count-1;
+                                    int prevCount = int.Parse(args[1]);
+                                    if (prevCount > 0){
+                                        foreach ( string line in history[args[0]]){
+                                            i--;
+                                            if ( i == prevCount){
+                                                Console.WriteLine("Posting: " + line);
+                                                this.SendTwitterMessage(line);
+                                                break;
+                                            }
+                                        }
+                                    } else {
+                                        Console.WriteLine("History number must be positive");
+                                    }
+
+                                }
+                                else
+                                {
+                                    Console.WriteLine("History " + args[1] + " lines back does not exist");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("No such nick: " + args[0]);
+                            }
+                        }
+                        catch
+                        {
+                            Console.WriteLine(" Could not parse correctly: Usage: !quoth nick linenum");
+                        }
                     }
 
                     // me only commands
