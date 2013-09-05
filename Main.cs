@@ -81,7 +81,7 @@ namespace IRCQwitter
             TweetSharp.TwitterService service = new TweetSharp.TwitterService(Constants.App_ConsumerKey, Constants.App_ConsumerSecret);
             service.AuthenticateWith(Constants.accessToken, Constants.tokenSecret);
             service.SendTweet(new TweetSharp.SendTweetOptions { Status = message});
-            
+
         }
         public void report(string message, string caller)
         {
@@ -94,7 +94,7 @@ namespace IRCQwitter
             int lineccount = line.Count(x => x == '^');
             return lineccount < line.Length - lineccount;
         }
-        
+
         public void handleHistory(string caller, string[] ex)
         {
             string[] args;
@@ -161,7 +161,7 @@ namespace IRCQwitter
             else
             {
                 // not a quoth command
-                if (!combined.Contains("^") && prevline.Count > 0)
+                if (shouldPost(combined) && prevline.Count > 0)
                 {
                     prevline.Clear();
                     carrotCount = 0;
