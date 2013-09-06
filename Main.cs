@@ -92,6 +92,8 @@ namespace IRCQwitter
         public bool shouldPost(string line)
         {
             int lineccount = line.Count(x => x == '^');
+            if (line.Contains("irc.amazdong.com"))
+                return false;
             return lineccount < line.Length - lineccount;
         }
         
