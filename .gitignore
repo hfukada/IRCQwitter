@@ -1,5 +1,6 @@
 Consts.cs
 IRCQwitter.v11.suo
-bin/*
-obj/*
-packages/*
+bin/
+obj/
+packages/
+*.exe
