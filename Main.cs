@@ -168,7 +168,9 @@ namespace IRCQwitter
                     prevline.Clear();
                     carrotCount = 0;
                 }
-                if (!(prevline.Count == 0 && !shouldPost(combined)))
+
+                // push the current line on the stack (we might need it if people start ^^ like fools.)
+                if (!(prevline.Count == 0 && !shouldPost(combined)) && (ex[1].Equals("QUIT") || ex[1].Equals("PART")))
                 {
                     if (ex.Length > 4)
                         prevline.Push("<" + caller + ">: " + ex[3].Substring(1) + " " + ex[4]);
@@ -176,12 +178,12 @@ namespace IRCQwitter
                         prevline.Push("<" + caller + ">: " + ex[3].Substring(1));
                 }
 
-
                 if (prevline.Count > 1)
                     foreach (string line in prevline)
                         foreach (char c in line)
                             carrotCount += c == '^' ? 1 : 0;
 
+                // if carrots are GREAT and it is REAAAALLY wanted. We can post to twitter
                 if (carrotCount > 3 && prevline.Count > 2)
                 {
                     string[] temp = prevline.ToArray();
@@ -194,6 +196,7 @@ namespace IRCQwitter
                     }
                 }
 
+                // Add line to that speaker's history queue
                 if (ex.Length > 4)
                     history[caller].Enqueue("<" + caller + ">: " + ex[3].Substring(1) + " " + ex[4]);
                 else if (ex.Length > 3)
