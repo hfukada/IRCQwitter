@@ -89,6 +89,16 @@ namespace IRCQwitter
             sendData("PRIVMSG", caller + " :" + message + "\n");
         }
 
+        public void barf()
+        {
+            foreach(string person in history.Keys ){
+                foreach (string line in history[person])
+                {
+                    Console.WriteLine(line);
+                }
+            }
+        }
+
         public bool shouldPost(string line)
         {
             int lineccount = line.Count(x => x == '^');
@@ -100,6 +110,7 @@ namespace IRCQwitter
         public void handleHistory(string caller, string[] ex)
         {
             string[] args;
+            int prevCount;
 
             // create an entry if there is no key for the nick
             if (!history.ContainsKey(caller))
@@ -120,12 +131,12 @@ namespace IRCQwitter
                 try
                 {
                     args = ex[4].Split();
+                    prevCount = args.Length > 1 ? int.Parse(args[1]) : 0;
                     if (history.ContainsKey(args[0]))
                     {
-                        if (history[args[0]].Count >= int.Parse(args[1]))
+                        if (history[args[0]].Count >= prevCount  )
                         {
                             int i = 0;
-                            int prevCount = int.Parse(args[1]);
                             if (prevCount > 0)
                             {
                                 foreach (string line in history[args[0]])
@@ -170,7 +181,7 @@ namespace IRCQwitter
                 }
 
                 // push the current line on the stack (we might need it if people start ^^ like fools.)
-                if (!(prevline.Count == 0 && !shouldPost(combined)) && (ex[1].Equals("QUIT") || ex[1].Equals("PART")))
+                if (!(prevline.Count == 0 && !shouldPost(combined)) )
                 {
                     if (ex.Length > 4)
                         prevline.Push("<" + caller + ">: " + ex[3].Substring(1) + " " + ex[4]);
@@ -254,10 +265,13 @@ namespace IRCQwitter
                                 case ":!part":
                                     sendData("PART", ex[2]);
                                     break;
+                                case ":!barf":
+                                    barf();
+                                    break;
                             }
                         }
                     }
-                    if (ex.Length > 3)
+                    if (ex.Length > 3 && (ex[1].Equals("PRIVMSG") || ex[1].Equals("NOTICE")) )
                         handleHistory(caller, ex);
                 }
 
