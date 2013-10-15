@@ -28,7 +28,7 @@ namespace IRCQwitter
         StreamWriter sw = null;
         int carrotCount = 0;
         Stack<string> prevline = new Stack<string>();
-        Dictionary<string, Queue<string>> history = new Dictionary<string, Queue<string>>();
+        Dictionary<string, Queue<string>> history = new Dictionary<string, Queue<string>>(StringComparer.OrdinalIgnoreCase);
 
         string master;
 
